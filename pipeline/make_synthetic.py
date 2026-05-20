@@ -26,6 +26,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -281,8 +282,13 @@ def main():
     (out / "conf.bin").write_bytes(np.ascontiguousarray(conf_u8).tobytes())
     (out / "ids.txt").write_text(ids, encoding="ascii")
 
+    version = hashlib.sha1(np.ascontiguousarray(conf_u8).tobytes()
+                           + np.ascontiguousarray(cols[0]).tobytes()
+                           + np.ascontiguousarray(cols[1]).tobytes()).hexdigest()[:12]
+
     meta = {
         "schema_version": 2,
+        "version": version,
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "source": "synthetic",
         "total_glitches": int(N),

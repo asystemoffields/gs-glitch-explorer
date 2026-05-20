@@ -19,6 +19,7 @@ uploads the detail files to a GitHub Release.
 
 UMAP on ~710k x 22 needs real RAM/CPU — that's why this runs on Modal, not here.
 """
+import hashlib
 import json
 import os
 
@@ -198,8 +199,17 @@ def process(n_neighbors: int = 15, min_dist: float = 0.1):
     with open(f"{out}/ids.txt", "w", encoding="ascii") as fh:  # DETAIL: 10 B/glitch
         fh.write(ids)
 
+    # content fingerprint -> meta.version; changes iff the data changes, so the
+    # app cache-busts the big files only on a real update (not every run).
+    version = hashlib.sha1(
+        np.ascontiguousarray(conf_u8).tobytes() + bytes(uuid_buf)
+        + np.ascontiguousarray(x, dtype="<f4").tobytes()
+        + np.ascontiguousarray(y, dtype="<f4").tobytes()
+    ).hexdigest()[:12]
+
     meta = {
         "schema_version": 2,
+        "version": version,
         "source": f"gravityspy-zenodo-{REC}",
         "total_glitches": int(N),
         "id_length": ID_LEN,
