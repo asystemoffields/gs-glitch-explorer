@@ -16,13 +16,10 @@ pipeline/*.zip
 pipeline/*.hdf5
 pipeline/*.csv
 
-# Two-tier data:
-#   Overview (web/data/meta.json + glitches.bin) IS committed so the site works.
-#   Detail tier is served from a GitHub Release (or copied locally for testing) —
-#   never commit it.
-web/data/conf.bin
-web/data/ids.txt
-web/data/uuids.bin
+# web/data/: full data (overview + detail) is committed and served same-origin by
+# Pages — GitHub Release assets don't send CORS headers, so a cross-origin fetch
+# of the detail tier from a Release is blocked. (A CORS object store like R2 is
+# the path to move the detail tier off-repo when the dataset grows large.)
 
 # --- OS / editor cruft ---
 .DS_Store

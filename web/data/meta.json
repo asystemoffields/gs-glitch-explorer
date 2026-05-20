@@ -81,7 +81,7 @@
   },
   "gps_base": 1126400000,
   "detail": {
-    "base_url": "https://github.com/asystemoffields/gs-glitch-explorer/releases/download/data-v1/",
+    "base_url": "",
     "conf_file": "conf.bin",
     "ids_file": "ids.txt",
     "uuids_file": "uuids.bin",
