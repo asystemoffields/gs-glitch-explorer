@@ -121,9 +121,9 @@ function runApp(data) {
     gSub.textContent = title;
     gGrid.innerHTML = '';
     gallery.classList.add('open');
-    try { await data.ensureIds(); } catch (e) {}
-    if (data.imagesAvailable()) { try { await data.ensureUuids(); } catch (e) {} }
     const show = indices.slice(0, GALLERY_MAX);
+    try { await data.ensureIds(); } catch (e) {}
+    if (data.imagesAvailable()) { try { await data.ensureUuidRecords(show); } catch (e) {} }
     for (const i of show) gGrid.appendChild(thumb(i));
     if (indices.length > GALLERY_MAX) gSub.textContent = `${title} — showing ${GALLERY_MAX} of ${indices.length.toLocaleString()}`;
   }
@@ -189,10 +189,11 @@ function runApp(data) {
     $('#btn-discovery').classList.toggle('active', open);
   });
   function buildDiscoveryPanel() {
+    const defaultThreshold = Math.min(1.5, state.maxEntropy);
     uncCb = el('input', { type: 'checkbox' });
     uncCb.addEventListener('change', () => state.update((f, d) => { d.showUncertain = uncCb.checked; }));
-    thr = el('input', { type: 'range', min: 0, max: Math.round(state.maxEntropy * 100), value: 150, style: { width: '100%' } });
-    thrVal = el('span', { class: 'hint' }, ['1.50']);
+    thr = el('input', { type: 'range', min: 0, max: Math.round(state.maxEntropy * 100), value: Math.round(defaultThreshold * 100), style: { width: '100%' } });
+    thrVal = el('span', { class: 'hint' }, [defaultThreshold.toFixed(2)]);
     thr.addEventListener('input', () => { const v = +thr.value / 100; thrVal.textContent = v.toFixed(2); state.update((f, d) => { d.uncertainThreshold = v; }); });
     lassoCb = el('input', { type: 'checkbox' });
     lassoCb.addEventListener('change', () => scatter.setLassoMode(lassoCb.checked));
@@ -279,8 +280,15 @@ function runApp(data) {
   // ---------- header buttons ----------
   $('#btn-reset').addEventListener('click', () => {
     if (uncCb) uncCb.checked = false;
+    if (lassoCb) lassoCb.checked = false;
+    if (thr && thrVal) {
+      const defaultThreshold = Math.min(1.5, state.maxEntropy);
+      thr.value = Math.round(defaultThreshold * 100);
+      thrVal.textContent = defaultThreshold.toFixed(2);
+    }
+    scatter.setLassoMode(false);
+    gallery.classList.remove('open');
     state.reset();
-    scatter.deselect();
     scatter.zoomAll();
   });
   $('#btn-help').addEventListener('click', toggleHelp);

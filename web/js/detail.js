@@ -25,7 +25,7 @@ export function buildDetail(refs, data, state, hooks = {}) {
     const durs = (data.meta.images && data.meta.images.durations) || ['0.5', '1.0', '2.0', '4.0'];
     const grid = el('div', { class: 'specgrid' });
     let ok = data.imagesAvailable();
-    if (ok) { try { await data.ensureUuids(); } catch (e) { ok = false; } }
+    if (ok) { try { await data.ensureUuidRecord(i); } catch (e) { ok = false; } }
     if (ok) {
       durs.forEach((dl, d) => {
         const url = data.imageUrl(i, d);
@@ -116,7 +116,8 @@ export function buildDetail(refs, data, state, hooks = {}) {
   state.on((evt) => {
     if (evt !== 'select') return;
     const i = state.selected;
-    if (i >= 0) { panel.classList.add('open'); render(i); }
-    else { panel.classList.remove('open'); }
+    const main = panel.closest('#main');
+    if (i >= 0) { panel.classList.add('open'); main?.classList.add('detail-open'); render(i); }
+    else { panel.classList.remove('open'); main?.classList.remove('detail-open'); }
   });
 }

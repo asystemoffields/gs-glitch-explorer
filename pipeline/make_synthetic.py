@@ -274,17 +274,19 @@ def main():
         np.rint(gps - GPS_BASE).astype("<u4"),
         label.astype("<u1"), run_idx.astype("<u1"), ifo.astype("<u1"),
     ]
-    with open(out / "glitches.bin", "wb") as fh:
-        for a in cols:
-            fh.write(np.ascontiguousarray(a).tobytes())
+    glitches_bytes = b"".join(np.ascontiguousarray(a).tobytes() for a in cols)
+    (out / "glitches.bin").write_bytes(glitches_bytes)
 
     conf_u8 = np.rint(P * 255).clip(0, 255).astype("<u1")
-    (out / "conf.bin").write_bytes(np.ascontiguousarray(conf_u8).tobytes())
-    (out / "ids.txt").write_text(ids, encoding="ascii")
+    conf_bytes = np.ascontiguousarray(conf_u8).tobytes()
+    ids_bytes = ids.encode("ascii")
+    (out / "conf.bin").write_bytes(conf_bytes)
+    (out / "ids.txt").write_bytes(ids_bytes)
+    stale_uuids = out / "uuids.bin"
+    if stale_uuids.exists():
+        stale_uuids.unlink()
 
-    version = hashlib.sha1(np.ascontiguousarray(conf_u8).tobytes()
-                           + np.ascontiguousarray(cols[0]).tobytes()
-                           + np.ascontiguousarray(cols[1]).tobytes()).hexdigest()[:12]
+    version = hashlib.sha1(glitches_bytes + conf_bytes + ids_bytes).hexdigest()[:12]
 
     meta = {
         "schema_version": 2,

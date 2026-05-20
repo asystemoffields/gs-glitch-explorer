@@ -8,7 +8,7 @@ runner does this in .github/workflows/update-data.yml. (UMAP on ~677k x 22 uses 
 few GB; the public-repo runner has 16 GB.) For a much larger future dataset, run
 the same script on any bigger machine — the output format is identical.
 
-  pip install -r pipeline/requirements.txt
+  pip install -r pipeline/requirements-lock.txt
   python pipeline/process_data.py --out web/data
 """
 import argparse
@@ -47,7 +47,70 @@ DURATIONS = ["0.5", "1.0", "2.0", "4.0"]
 ID_LEN = 10
 
 
-def build(out_dir: Path, raw_dir: Path, record: str, n_neighbors: int, min_dist: float):
+def fetch_zenodo_file_info(requests, record: str) -> dict:
+    url = f"https://zenodo.org/api/records/{record}"
+    r = requests.get(url, timeout=120)
+    r.raise_for_status()
+    files = {}
+    for item in r.json().get("files", []):
+        key = item.get("key")
+        if key:
+            files[key] = {
+                "size": item.get("size"),
+                "checksum": item.get("checksum"),
+                "url": f"https://zenodo.org/api/records/{record}/files/{key}/content",
+            }
+    missing = [fn for fn in FILES if fn not in files]
+    if missing:
+        raise RuntimeError(f"Zenodo record {record} is missing files: {missing}")
+    return files
+
+
+def checksum_ok(path: Path, checksum: str | None) -> bool:
+    if not checksum:
+        return True
+    if ":" in checksum:
+        algo, expected = checksum.split(":", 1)
+    else:
+        algo, expected = "md5", checksum
+    h = hashlib.new(algo)
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest().lower() == expected.lower()
+
+
+def cached_file_ok(path: Path, info: dict) -> bool:
+    if not path.exists() or path.stat().st_size == 0:
+        return False
+    size = info.get("size")
+    if size is not None and path.stat().st_size != int(size):
+        return False
+    return checksum_ok(path, info.get("checksum"))
+
+
+def ensure_cached_file(requests, fn: str, path: Path, info: dict) -> None:
+    if cached_file_ok(path, info):
+        return
+    print("downloading", fn, flush=True)
+    tmp = path.with_name(path.name + ".tmp")
+    try:
+        with requests.get(info["url"], stream=True, timeout=1800) as r:
+            r.raise_for_status()
+            with open(tmp, "wb") as fh:
+                for chunk in r.iter_content(chunk_size=1024 * 1024):
+                    if chunk:
+                        fh.write(chunk)
+        if not cached_file_ok(tmp, info):
+            raise RuntimeError(f"downloaded {fn} failed size/checksum validation")
+        tmp.replace(path)
+    finally:
+        if tmp.exists():
+            tmp.unlink()
+
+
+def build(out_dir: Path, raw_dir: Path, record: str, n_neighbors: int,
+          min_dist: float, random_state: int | None):
     import pandas as pd
     import requests
     import umap
@@ -55,15 +118,11 @@ def build(out_dir: Path, raw_dir: Path, record: str, n_neighbors: int, min_dist:
     out_dir.mkdir(parents=True, exist_ok=True)
     raw_dir.mkdir(parents=True, exist_ok=True)
 
+    zenodo_files = fetch_zenodo_file_info(requests, record)
     frames = []
     for fn in FILES:
         path = raw_dir / fn
-        if not path.exists() or path.stat().st_size == 0:
-            url = f"https://zenodo.org/api/records/{record}/files/{fn}/content"
-            print("downloading", fn, flush=True)
-            r = requests.get(url, timeout=1800)
-            r.raise_for_status()
-            path.write_bytes(r.content)
+        ensure_cached_file(requests, fn, path, zenodo_files[fn])
         d = pd.read_csv(path)
         d["__run"] = fn.split("_")[1].split(".")[0]
         frames.append(d)
@@ -106,7 +165,7 @@ def build(out_dir: Path, raw_dir: Path, record: str, n_neighbors: int, min_dist:
 
     print(f"UMAP on {N:,} x {len(CONF_COLS)} (cosine)…", flush=True)
     reducer = umap.UMAP(n_neighbors=n_neighbors, min_dist=min_dist, metric="cosine",
-                        low_memory=True, verbose=True)
+                        low_memory=True, verbose=True, random_state=random_state)
     xy = reducer.fit_transform(conf.astype(np.float32)).astype(np.float32)
     x, y = np.ascontiguousarray(xy[:, 0]), np.ascontiguousarray(xy[:, 1])
 
@@ -145,20 +204,27 @@ def build(out_dir: Path, raw_dir: Path, record: str, n_neighbors: int, min_dist:
     def u32(a): return np.ascontiguousarray(a, dtype="<u4").tobytes()
     def u8(a):  return np.ascontiguousarray(a, dtype="<u1").tobytes()
 
-    gps_off = np.clip(np.rint(gps - GPS_BASE), 0, 2**32 - 1)
-    with open(out_dir / "glitches.bin", "wb") as fh:
-        for chunk in (f32(x), f32(y), f32(snr), f32(freq), f32(entropy), f32(confidence),
-                      u32(gps_off), u8(label_idx), u8(run_idx), u8(ifo_idx)):
-            fh.write(chunk)
+    gps_base = int(np.floor(gps.min()))
+    gps_off = np.rint(gps - gps_base)
+    if gps_off.min() < 0 or gps_off.max() > 2**32 - 1:
+        raise RuntimeError(f"GPS offsets do not fit uint32 for gps_base={gps_base}")
+
+    glitch_chunks = (
+        f32(x), f32(y), f32(snr), f32(freq), f32(entropy), f32(confidence),
+        u32(gps_off), u8(label_idx), u8(run_idx), u8(ifo_idx),
+    )
+    glitches_bytes = b"".join(glitch_chunks)
+    (out_dir / "glitches.bin").write_bytes(glitches_bytes)
 
     conf_u8 = np.rint(conf * 255).clip(0, 255).astype("<u1")
-    (out_dir / "conf.bin").write_bytes(np.ascontiguousarray(conf_u8).tobytes())
-    (out_dir / "uuids.bin").write_bytes(bytes(uuid_buf))
-    (out_dir / "ids.txt").write_text(ids, encoding="ascii")
+    conf_bytes = np.ascontiguousarray(conf_u8).tobytes()
+    uuid_bytes = bytes(uuid_buf)
+    ids_bytes = ids.encode("ascii")
+    (out_dir / "conf.bin").write_bytes(conf_bytes)
+    (out_dir / "uuids.bin").write_bytes(uuid_bytes)
+    (out_dir / "ids.txt").write_bytes(ids_bytes)
 
-    version = hashlib.sha1(
-        np.ascontiguousarray(conf_u8).tobytes() + bytes(uuid_buf) + f32(x) + f32(y)
-    ).hexdigest()[:12]
+    version = hashlib.sha1(glitches_bytes + conf_bytes + ids_bytes + uuid_bytes).hexdigest()[:12]
 
     meta = {
         "schema_version": 2,
@@ -177,7 +243,7 @@ def build(out_dir: Path, raw_dir: Path, record: str, n_neighbors: int, min_dist:
         "snr": {"min": float(np.floor(snr.min() * 1000) / 1000), "max": float(np.ceil(snr.max() * 1000) / 1000)},
         "freq": {"min": float(np.floor(freq.min() * 1000) / 1000), "max": float(np.ceil(freq.max() * 1000) / 1000)},
         "gps": {"min": int(np.floor(gps.min())), "max": int(np.ceil(gps.max()))},
-        "gps_base": GPS_BASE,
+        "gps_base": gps_base,
         "detail": {"base_url": "", "conf_file": "conf.bin", "ids_file": "ids.txt",
                    "uuids_file": "uuids.bin", "uuid_bytes": 16},
         "images": {"available": True, "prefix": URL_PREFIX, "suffix": URL_SUFFIX, "durations": DURATIONS},
@@ -194,8 +260,10 @@ def main():
     ap.add_argument("--record", default=REC)
     ap.add_argument("--n-neighbors", type=int, default=15)
     ap.add_argument("--min-dist", type=float, default=0.1)
+    ap.add_argument("--random-state", type=int, default=42,
+                    help="fixed seed for deterministic UMAP coordinates")
     a = ap.parse_args()
-    build(a.out, a.raw, a.record, a.n_neighbors, a.min_dist)
+    build(a.out, a.raw, a.record, a.n_neighbors, a.min_dist, a.random_state)
 
 
 if __name__ == "__main__":

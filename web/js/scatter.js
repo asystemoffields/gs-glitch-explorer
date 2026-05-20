@@ -55,9 +55,27 @@ export function createScatter({ canvas, data, hooks = {} }) {
     deselectOnEscape: true,
   });
 
+  let drawing = false;
+  let needsDraw = false;
+  let pendingExtra = {};
   function draw(extra = {}) {
-    sp.draw({ x: xN, y: yN, valueA, valueB },
-      { zDataType: 'categorical', wDataType: 'categorical', preventFilterReset: true, ...extra });
+    pendingExtra = { ...pendingExtra, ...extra };
+    needsDraw = true;
+    if (drawing) return;
+    drawing = true;
+    Promise.resolve().then(async () => {
+      while (needsDraw) {
+        needsDraw = false;
+        const opts = pendingExtra;
+        pendingExtra = {};
+        await sp.draw({ x: xN, y: yN, valueA, valueB },
+          { zDataType: 'categorical', wDataType: 'categorical', preventFilterReset: true, ...opts });
+      }
+      drawing = false;
+    }).catch((e) => {
+      drawing = false;
+      setTimeout(() => { throw e; });
+    });
   }
   draw();
   sp.zoomToArea(dataArea);

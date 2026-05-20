@@ -10,11 +10,9 @@ is uncertain.
 Every published view of this embedding space has been a static figure in a
 paper. This makes it live, in a browser, for free.
 
-> **Status: under active construction.** The app currently runs on a realistic
-> **synthetic** dataset so every feature is usable end-to-end today. The
-> pipeline that builds the *real* dataset from the public Gravity Spy data on
-> Zenodo is included and designed to run on an ordinary machine. See
-> [Data](#data) for which is which.
+> **Status: under active construction.** The published app currently ships the
+> real O1-O3 Gravity Spy dataset from Zenodo record 5649212. A realistic
+> synthetic generator is included for local development, demos, and tests.
 
 ## Why it matters
 
@@ -48,11 +46,11 @@ gs-glitch-explorer/
 │   ├── css/
 │   ├── js/               # vanilla ES modules
 │   ├── vendor/           # regl-scatterplot et al., vendored (no build step)
-│   └── data/             # meta.json + glitches.bin (overview, committed); detail tier on a Release
+│   └── data/             # overview + detail tiers, committed and served same-origin today
 ├── pipeline/             # Python: build web/data/ from source
 │   ├── make_synthetic.py # realistic synthetic dataset (numpy only)
 │   ├── process_data.py   # build the REAL dataset from Zenodo (UMAP; runs free on Actions)
-│   ├── publish_data.py   # deploy helper (same-origin / R2 base_url / Release)
+│   ├── publish_data.py   # deploy helper (same-origin / R2 base_url)
 │   └── requirements*.txt
 ├── docs/                 # research notes (data layout, spectrogram URLs, ...)
 ├── DATA_FORMAT.md        # the pipeline <-> app data contract
@@ -81,15 +79,15 @@ data on [Zenodo record 5649212](https://zenodo.org/records/5649212). UMAP on
 *Auto-update* below), or run it on any machine with enough RAM:
 
 ```bash
-pip install -r pipeline/requirements.txt
+pip install -r pipeline/requirements-lock.txt
 python pipeline/process_data.py --out web/data   # download + UMAP -> web/data/
 # then commit web/data/ and push — GitHub Pages deploys it.
 ```
 
 > **Hosting note:** the detail tier is currently committed and served
 > **same-origin** from Pages, because GitHub *Release* assets don't send CORS
-> headers (so a browser can't `fetch()` them cross-origin). `publish_data.py
-> --tag` (detail → a Release) is kept for reference; the scalable path for a
+> headers (so a browser can't `fetch()` them cross-origin). The
+> `publish_data.py --release-tag` path is kept for archival detail releases; the scalable path for a
 > much larger dataset is a CORS-enabled object store (e.g. Cloudflare R2) set as
 > `meta.detail.base_url`.
 
@@ -97,8 +95,8 @@ To move the detail tier off-repo at scale: create a public bucket (e.g. Cloudfla
 R2) with a CORS rule allowing `GET` from the site origin, then:
 
 ```bash
-python pipeline/publish_data.py --base-url https://<bucket-host>/gs/
-# upload pipeline/_data_real/{conf.bin,ids.txt,uuids.bin} to that base URL, then:
+python pipeline/publish_data.py --src web/data --base-url https://<bucket-host>/gs/
+# upload web/data/{conf.bin,ids.txt,uuids.bin} to that base URL, then:
 git add web/data && git commit -m "data: host detail tier on R2" && git push
 ```
 
@@ -129,15 +127,16 @@ build step. Target URL:
 ## Roadmap
 
 - [x] Project scaffold + data contract
-- [ ] Synthetic dataset generator
-- [ ] Core WebGL scatter (color by class, zoom/pan, hover, click)
-- [ ] Filters (class, detector, run, SNR, frequency, confidence, entropy)
-- [ ] Detail panel (spectrograms, metadata, 23-class confidence breakdown)
-- [ ] Discovery mode (uncertainty highlight, lasso → gallery, 23-D kNN)
-- [ ] Temporal view (scrub GPS time, activity histogram)
-- [ ] Stats sidebar
-- [ ] Real Zenodo pipeline + spectrogram URL resolution
-- [ ] Polish + deploy
+- [x] Synthetic dataset generator
+- [x] Core WebGL scatter (color by class, zoom/pan, hover, click)
+- [x] Filters (class, detector, run, SNR, frequency, confidence, entropy)
+- [x] Detail panel (spectrograms, metadata, 22-class confidence breakdown)
+- [x] Discovery mode (uncertainty highlight, lasso → gallery, 22-D kNN)
+- [x] Temporal view (scrub GPS time, activity histogram)
+- [x] Stats sidebar
+- [x] Real Zenodo pipeline + spectrogram URL resolution
+- [ ] Mobile interaction polish
+- [ ] Scalable off-repo detail hosting
 
 ## Credits & references
 
@@ -154,4 +153,7 @@ Built on the open data and tooling of the Gravity Spy collaboration and the
 
 ## License
 
-[MIT](./LICENSE) — free to use, modify, host, and build on.
+- Code, UI, and pipeline scripts: [MIT](./LICENSE).
+- Generated Gravity Spy data and image URLs: CC-BY-4.0 from Gravity Spy /
+  LIGO Scientific Collaboration. Attribute Gravity Spy and cite Glanzer et al.
+  2023 when reusing the dataset.

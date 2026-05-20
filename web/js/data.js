@@ -3,8 +3,8 @@
 //   Detail tier  (lazy, from meta.detail.base_url, or web/data/ if empty):
 //                conf.bin, ids.txt, uuids.bin.
 // The detail tier is fetched only on first detail/gallery/kNN interaction, so it
-// never blocks the initial scatter render — and it can live on a CDN (a GitHub
-// Release) so the dataset can grow without bloating the Pages repo.
+// never blocks the initial scatter render — and it can live on a CORS-enabled
+// object store so the dataset can grow without bloating the Pages repo.
 
 const DATA_DIR = 'data';
 
@@ -17,6 +17,11 @@ async function fetchText(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`failed to load ${url}: ${res.status}`);
   return res.text();
+}
+async function fetchRange(url, start, end) {
+  const res = await fetch(url, { headers: { Range: `bytes=${start}-${end}` } });
+  if (!res.ok) throw new Error(`failed to load ${url} bytes ${start}-${end}: ${res.status}`);
+  return { status: res.status, buffer: await res.arrayBuffer() };
 }
 
 const HEX = [];
@@ -51,9 +56,18 @@ export async function loadData() {
     meta.detail || {});
   const detailBase = detail.base_url ? detail.base_url.replace(/\/+$/, '') : DATA_DIR;
   const images = meta.images || { available: false };
+  const durations = Array.isArray(images.durations) && images.durations.length
+    ? images.durations : ['0.5', '1.0', '2.0', '4.0'];
+  const durationCount = durations.length;
+  const uuidBytes = detail.uuid_bytes || 16;
+  const uuidRecordBytes = durationCount * uuidBytes;
+  const uuidTotalBytes = N * uuidRecordBytes;
+  const uuidUrl = `${detailBase}/${detail.uuids_file}${vq}`;
 
   let conf = null, idsText = null, uuids = null;
   let pConf, pIds, pUuids;
+  const uuidRecords = new Map();
+  const pUuidRecords = new Map();
   // Each ensure* caches its promise but CLEARS the cache on failure, so a flaky
   // CDN can be retried (not stuck on a permanently-rejected cached promise), and
   // validates the decoded length against N so a truncated download fails loudly.
@@ -71,10 +85,45 @@ export async function loadData() {
   }
   function ensureUuids() {
     if (!images.available) return Promise.resolve(null);
-    if (!pUuids) pUuids = fetchBuffer(`${detailBase}/${detail.uuids_file}${vq}`)
-      .then((b) => { const a = new Uint8Array(b); if (a.length !== N * 4 * 16) throw new Error(`uuids.bin: ${a.length} != ${N * 4 * 16}`); uuids = a; })
+    if (!pUuids) pUuids = fetchBuffer(uuidUrl)
+      .then((b) => { const a = new Uint8Array(b); if (a.length !== uuidTotalBytes) throw new Error(`uuids.bin: ${a.length} != ${uuidTotalBytes}`); uuids = a; })
       .catch((e) => { pUuids = null; throw e; });
     return pUuids;
+  }
+  function storeUuidRecord(i, a) {
+    if (a.length !== uuidRecordBytes) throw new Error(`uuid record ${i}: ${a.length} != ${uuidRecordBytes}`);
+    uuidRecords.set(i, a);
+  }
+  function ensureUuidRecord(i) {
+    if (!images.available || i < 0 || i >= N) return Promise.resolve(null);
+    if (uuids || uuidRecords.has(i)) return Promise.resolve(null);
+    if (!pUuidRecords.has(i)) {
+      const start = i * uuidRecordBytes;
+      const end = start + uuidRecordBytes - 1;
+      pUuidRecords.set(i, fetchRange(uuidUrl, start, end)
+        .then(({ status, buffer }) => {
+          const a = new Uint8Array(buffer);
+          if (status === 206) {
+            storeUuidRecord(i, a);
+          } else if (a.length === uuidTotalBytes) {
+            uuids = a;
+          } else {
+            storeUuidRecord(i, a);
+          }
+        })
+        .catch((e) => { pUuidRecords.delete(i); throw e; }));
+    }
+    return pUuidRecords.get(i);
+  }
+  function ensureUuidRecords(indices) {
+    if (!images.available || uuids) return Promise.resolve(null);
+    const list = (Array.isArray(indices) || ArrayBuffer.isView(indices)) ? Array.from(indices) : [indices];
+    const wanted = [...new Set(list.filter((i) => Number.isInteger(i) && i >= 0 && i < N))];
+    return Promise.all(wanted.map(ensureUuidRecord)).then(() => null);
+  }
+  function uuidRecord(i) {
+    if (uuids) return uuids.subarray(i * uuidRecordBytes, (i + 1) * uuidRecordBytes);
+    return uuidRecords.get(i) || null;
   }
 
   const id = (i) => (idsText ? idsText.slice(i * idLen, (i + 1) * idLen).trim() : '');
@@ -85,10 +134,12 @@ export async function loadData() {
     return out;
   }
   function imageUrl(i, d) {
-    if (!images.available || !uuids) return null;
-    const base = (i * 4 + d) * 16;
+    if (!images.available || d < 0 || d >= durationCount || uuidBytes !== 16) return null;
+    const rec = uuidRecord(i);
+    if (!rec) return null;
+    const base = d * uuidBytes;
     let allZero = true, hex = '';
-    for (let k = 0; k < 16; k++) { const b = uuids[base + k]; if (b) allZero = false; hex += HEX[b]; }
+    for (let k = 0; k < uuidBytes; k++) { const b = rec[base + k]; if (b) allZero = false; hex += HEX[b]; }
     if (allZero) return null;
     const u = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
     return images.prefix + u + images.suffix;
@@ -104,6 +155,7 @@ export async function loadData() {
     ifoName: (i) => meta.ifos[col.ifoIdx[i]],
     classColor: (j) => meta.class_colors[j],
     imagesAvailable: () => !!images.available,
-    ensureConf, ensureIds, ensureUuids, confVec, rawConf: () => conf, imageUrl,
+    ensureConf, ensureIds, ensureUuids, ensureUuidRecord, ensureUuidRecords,
+    confVec, rawConf: () => conf, imageUrl,
   };
 }

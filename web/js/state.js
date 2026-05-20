@@ -96,7 +96,15 @@ export function createState(data) {
     update(fn) { fn(f, d); recompute(); emit('filters'); },
     setSelected(i) { selected = i; emit('select'); },
     setPinned(i) { pinned = i; emit('pin'); },
-    reset() { Object.assign(f, defaults()); d.showUncertain = false; recompute(); emit('filters'); emit('reset'); },
+    reset() {
+      Object.assign(f, defaults());
+      d.showUncertain = false;
+      d.uncertainThreshold = Math.min(1.5, maxEntropy);
+      selected = -1;
+      pinned = -1;
+      recompute();
+      emit('filters'); emit('reset'); emit('select'); emit('pin');
+    },
   };
 
   recompute();

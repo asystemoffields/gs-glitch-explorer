@@ -8,9 +8,9 @@ tiers**:
   Everything the scatter, filters, discovery highlight, and temporal view need.
 - **Detail** — loaded **lazily**, on the first detail/gallery/kNN interaction,
   from `meta.detail.base_url`. Empty `base_url` ⇒ same-origin `web/data/` (the
-  synthetic dataset, and local testing). For the real dataset it points at a
-  CDN (a GitHub Release), so the dataset can grow without bloating the Pages
-  repo or blocking initial render.
+  synthetic dataset, local testing, and the current same-origin Pages deploy).
+  For larger datasets it can point at a CORS-enabled object store, so the
+  dataset can grow without bloating the Pages repo or blocking initial render.
 
 All multi-byte numbers are **little-endian** (what browser `TypedArray` views
 assume on mainstream platforms; the pipeline writes `<`-typed NumPy arrays).

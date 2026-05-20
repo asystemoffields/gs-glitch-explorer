@@ -91,8 +91,9 @@ Optional for v1: only needed for volunteer-agreement metadata.
 6. gps from `event_time`; run from filename; ifo from `ifo`.
 7. Extract `url1..url4` → strip prefix/suffix, hex → **16 bytes** each → 4 packed
    UUIDs/glitch (all-zero = missing).
-8. No subsample needed — the two-tier layout serves all ~677k (overview in the
-   repo, detail on a Release; shard detail by run when it outgrows Pages' caps).
+8. No subsample needed — the two-tier layout serves all ~677k from same-origin
+   Pages today; move detail to a CORS object store or shard by run when it
+   outgrows Pages' caps.
 9. Emit the `DATA_FORMAT.md` files into `web/data/`.
 
 ## Attribution (must appear in README + app footer)
