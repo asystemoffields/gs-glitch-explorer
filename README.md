@@ -83,9 +83,16 @@ data on [Zenodo record 5649212](https://zenodo.org/records/5649212). UMAP on
 pip install -r pipeline/requirements.txt
 modal run pipeline/modal_pipeline.py           # cloud: download + UMAP -> Modal volume
 python pipeline/fetch_volume.py                # pull outputs -> pipeline/_data_real/
-python pipeline/publish_data.py --tag data-v1  # overview -> repo, detail -> a Release
-# (or: python pipeline/publish_data.py --local-only   to test the real data locally)
+python pipeline/publish_data.py --local-only   # write all tiers into web/data/
+# then commit web/data/ and push — GitHub Pages deploys it.
 ```
+
+> **Hosting note:** the detail tier is currently committed and served
+> **same-origin** from Pages, because GitHub *Release* assets don't send CORS
+> headers (so a browser can't `fetch()` them cross-origin). `publish_data.py
+> --tag` (detail → a Release) is kept for reference; the scalable path for a
+> much larger dataset is a CORS-enabled object store (e.g. Cloudflare R2) set as
+> `meta.detail.base_url`.
 
 ## Deploy (GitHub Pages)
 

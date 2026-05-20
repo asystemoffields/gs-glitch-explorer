@@ -44,7 +44,7 @@ assume on mainstream platforms; the pipeline writes `<`-typed NumPy arrays).
   "gps_base": 1126400000,                    // gps_off in glitches.bin is (gps - gps_base)
 
   "detail": {                                // where the lazy detail tier lives
-    "base_url": "",                          // "" => web/data/; else e.g. a Release download URL
+    "base_url": "",                          // "" => same-origin web/data/ (current); else a CORS-enabled CDN/object-store URL
     "conf_file": "conf.bin",
     "ids_file": "ids.txt",
     "uuids_file": "uuids.bin",
