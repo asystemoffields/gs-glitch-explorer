@@ -1,0 +1,101 @@
+{
+  "schema_version": 2,
+  "source": "gravityspy-zenodo-5649212",
+  "total_glitches": 676613,
+  "id_length": 10,
+  "classes": [
+    "1400Ripples",
+    "1080Lines",
+    "Air_Compressor",
+    "Blip",
+    "Chirp",
+    "Extremely_Loud",
+    "Helix",
+    "Koi_Fish",
+    "Light_Modulation",
+    "Low_Frequency_Burst",
+    "Low_Frequency_Lines",
+    "No_Glitch",
+    "None_of_the_Above",
+    "Paired_Doves",
+    "Power_Line",
+    "Repeating_Blips",
+    "Scattered_Light",
+    "Scratchy",
+    "Tomte",
+    "Violin_Mode",
+    "Wandering_Line",
+    "Whistle"
+  ],
+  "class_colors": [
+    "#ffd60a",
+    "#ff9f0a",
+    "#8d6e63",
+    "#ff5a5a",
+    "#bf5af2",
+    "#ff6fd8",
+    "#2dd4a7",
+    "#5b8def",
+    "#a8e10c",
+    "#ff7a45",
+    "#c9a7ff",
+    "#9aa0a6",
+    "#6b7280",
+    "#ff9ec7",
+    "#e9e36b",
+    "#ff7a7a",
+    "#4cd964",
+    "#c2c24e",
+    "#5fb0e8",
+    "#b06ed0",
+    "#32d5e0",
+    "#ffbf8a"
+  ],
+  "runs": [
+    "O1",
+    "O2",
+    "O3a",
+    "O3b"
+  ],
+  "ifos": [
+    "H1",
+    "L1"
+  ],
+  "bounds": {
+    "xmin": -15.0,
+    "xmax": 34.0,
+    "ymin": -19.0,
+    "ymax": 26.0
+  },
+  "snr": {
+    "min": 7.5,
+    "max": 156629.938
+  },
+  "freq": {
+    "min": 10.008,
+    "max": 2047.107
+  },
+  "gps": {
+    "min": 1126402868,
+    "max": 1269029954
+  },
+  "gps_base": 1126400000,
+  "detail": {
+    "base_url": "",
+    "conf_file": "conf.bin",
+    "ids_file": "ids.txt",
+    "uuids_file": "uuids.bin",
+    "uuid_bytes": 16
+  },
+  "images": {
+    "available": true,
+    "prefix": "https://panoptes-uploads.zooniverse.org/production/subject_location/",
+    "suffix": ".png",
+    "durations": [
+      "0.5",
+      "1.0",
+      "2.0",
+      "4.0"
+    ]
+  }
+}

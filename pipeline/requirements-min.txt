@@ -1,0 +1,2 @@
+# Minimal deps for make_synthetic.py (generate the demo dataset).
+numpy>=1.24

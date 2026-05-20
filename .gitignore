@@ -1,0 +1,39 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.ipynb_checkpoints/
+
+# --- Pipeline working dirs & raw data (large; regenerate or re-fetch) ---
+# (_data_real = fetch_volume.py output, real detail tier ~85 MB; _modal_out = volume dl)
+pipeline/data_raw/
+pipeline/_data_real/
+pipeline/_modal_out/
+pipeline/*.zip
+pipeline/*.hdf5
+pipeline/*.csv
+
+# Two-tier data:
+#   Overview (web/data/meta.json + glitches.bin) IS committed so the site works.
+#   Detail tier is served from a GitHub Release (or copied locally for testing) —
+#   never commit it.
+web/data/conf.bin
+web/data/ids.txt
+web/data/uuids.bin
+
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# --- Node (not used by this project, but just in case) ---
+node_modules/
+
+# --- Logs / temp ---
+*.log
+.cache/

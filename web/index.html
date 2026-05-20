@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gravity Spy Glitch Explorer</title>
+  <meta name="description" content="Interactive WebGL map of LIGO gravitational-wave detector glitches — explore the Gravity Spy classification landscape and hunt for new glitch classes." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header>
+    <span class="title"><b>Gravity Spy</b> Glitch Explorer</span>
+    <span class="subtitle">UMAP of LIGO detector-glitch classifications</span>
+    <span class="spacer"></span>
+    <span id="src-badge" class="src-badge"></span>
+    <button class="btn sm" id="btn-discovery">✦ Discovery</button>
+    <button class="btn sm" id="btn-temporal">⏱ Time</button>
+    <button class="btn sm" id="btn-theme" title="Theme: Auto / Light / Dark">◐ Auto</button>
+    <button class="btn sm" id="btn-reset">Reset</button>
+    <button class="btn sm" id="btn-help">?</button>
+  </header>
+
+  <aside id="sidebar">
+    <div id="filters"><!-- filter sections injected by filters.js --></div>
+    <div id="stats"><!-- stats injected by stats.js --></div>
+    <div id="credit">
+      Data: <a href="https://www.zooniverse.org/projects/zooniverse/gravity-spy" target="_blank" rel="noopener">Gravity Spy</a>
+      / LIGO · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC-BY-4.0</a> ·
+      cite <a href="https://doi.org/10.1088/1361-6382/acb633" target="_blank" rel="noopener">Glanzer+ 2023</a>
+    </div>
+  </aside>
+
+  <main id="main">
+    <canvas id="scatter-canvas"></canvas>
+    <div id="overlay"></div>
+
+    <div id="temporal">
+      <div class="thead">
+        <span id="temporal-label">All time</span>
+        <span class="spacer" style="flex:1"></span>
+        <button class="btn sm" id="temporal-play">▶ Play</button>
+      </div>
+      <div class="histo" id="temporal-histo"></div>
+      <div class="slider" id="temporal-slider"></div>
+    </div>
+
+    <div id="gallery">
+      <div class="ghead">
+        <b id="gallery-title">Selection</b>
+        <span id="gallery-sub" class="hint"></span>
+        <span class="spacer" style="flex:1"></span>
+        <button class="btn sm" id="gallery-close">Close</button>
+      </div>
+      <div class="ggrid" id="gallery-grid"></div>
+    </div>
+
+    <aside id="detail">
+      <div class="dhead">
+        <span class="id" id="detail-id">—</span>
+        <span class="x" id="detail-close" title="Close">×</span>
+      </div>
+      <div class="dbody" id="detail-body"></div>
+    </aside>
+
+    <div id="loading">
+      <div>Loading glitches…</div>
+      <div class="bar"><i></i></div>
+    </div>
+  </main>
+
+  <div id="tooltip"></div>
+
+  <!-- Vendored, no-build. Load order matters: regl + pub-sub-es define the globals
+       (createREGL, createPubSub) that regl-scatterplot (createScatterplot) reads. -->
+  <script src="vendor/regl.min.js"></script>
+  <script src="vendor/pub-sub-es.js"></script>
+  <script src="vendor/regl-scatterplot.min.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+# Deps for the real pipeline (pipeline/modal_pipeline.py + fetch_volume.py +
+# publish_data.py). These are the EXACT, mutually-compatible pins the Modal image
+# uses: scikit-learn >=1.6 removed the `force_all_finite` arg that umap-learn
+# 0.5.6 still calls, so stay on 1.5.x (and matched numpy/scipy/numba).
+numpy==1.26.4
+scipy==1.13.1
+scikit-learn==1.5.2
+numba==0.60.0
+umap-learn==0.5.6
+pandas==2.2.2
+pyarrow
+requests
+tqdm
+modal>=1.0          # runs modal_pipeline.py (cloud UMAP) + fetch_volume.py
