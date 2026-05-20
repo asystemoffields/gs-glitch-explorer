@@ -23,13 +23,17 @@ const HEX = [];
 for (let i = 0; i < 256; i++) HEX.push(i.toString(16).padStart(2, '0'));
 
 export async function loadData() {
-  const meta = await (await fetch(`${DATA_DIR}/meta.json`)).json();
+  const meta = await (await fetch(`${DATA_DIR}/meta.json?t=${Date.now()}`)).json();
   const N = meta.total_glitches;
   const C = meta.classes.length;
   const idLen = meta.id_length;
+  // Cache-busting: meta.json is always fetched fresh (above); the big data files
+  // are cached but keyed by meta.version (a content hash), so a new pipeline run
+  // makes browsers refetch instead of serving stale bytes.
+  const vq = meta.version ? `?v=${encodeURIComponent(meta.version)}` : '';
 
   // ---- overview tier ----
-  const buf = await fetchBuffer(`${DATA_DIR}/glitches.bin`);
+  const buf = await fetchBuffer(`${DATA_DIR}/glitches.bin${vq}`);
   let o = 0;
   const f32 = (n) => { const a = new Float32Array(buf, o, n); o += n * 4; return a; };
   const u32 = (n) => { const a = new Uint32Array(buf, o, n); o += n * 4; return a; };
@@ -54,20 +58,20 @@ export async function loadData() {
   // CDN can be retried (not stuck on a permanently-rejected cached promise), and
   // validates the decoded length against N so a truncated download fails loudly.
   function ensureConf() {
-    if (!pConf) pConf = fetchBuffer(`${detailBase}/${detail.conf_file}`)
+    if (!pConf) pConf = fetchBuffer(`${detailBase}/${detail.conf_file}${vq}`)
       .then((b) => { const a = new Uint8Array(b); if (a.length !== N * C) throw new Error(`conf.bin: ${a.length} != ${N * C}`); conf = a; })
       .catch((e) => { pConf = null; throw e; });
     return pConf;
   }
   function ensureIds() {
-    if (!pIds) pIds = fetchText(`${detailBase}/${detail.ids_file}`)
+    if (!pIds) pIds = fetchText(`${detailBase}/${detail.ids_file}${vq}`)
       .then((t) => { if (t.length < N * idLen) throw new Error(`ids.txt: ${t.length} < ${N * idLen}`); idsText = t; })
       .catch((e) => { pIds = null; throw e; });
     return pIds;
   }
   function ensureUuids() {
     if (!images.available) return Promise.resolve(null);
-    if (!pUuids) pUuids = fetchBuffer(`${detailBase}/${detail.uuids_file}`)
+    if (!pUuids) pUuids = fetchBuffer(`${detailBase}/${detail.uuids_file}${vq}`)
       .then((b) => { const a = new Uint8Array(b); if (a.length !== N * 4 * 16) throw new Error(`uuids.bin: ${a.length} != ${N * 4 * 16}`); uuids = a; })
       .catch((e) => { pUuids = null; throw e; });
     return pUuids;
