@@ -51,9 +51,8 @@ gs-glitch-explorer/
 │   └── data/             # meta.json + glitches.bin (overview, committed); detail tier on a Release
 ├── pipeline/             # Python: build web/data/ from source
 │   ├── make_synthetic.py # realistic synthetic dataset (numpy only)
-│   ├── modal_pipeline.py # build the REAL dataset from Zenodo via Modal (cloud UMAP)
-│   ├── fetch_volume.py   # pull the Modal outputs locally
-│   ├── publish_data.py   # deploy: overview -> repo, detail -> GitHub Release
+│   ├── process_data.py   # build the REAL dataset from Zenodo (UMAP; runs free on Actions)
+│   ├── publish_data.py   # deploy helper (same-origin / R2 base_url / Release)
 │   └── requirements*.txt
 ├── docs/                 # research notes (data layout, spectrogram URLs, ...)
 ├── DATA_FORMAT.md        # the pipeline <-> app data contract
@@ -66,7 +65,8 @@ The data is split into two tiers (full contract in
 [`DATA_FORMAT.md`](./DATA_FORMAT.md)): an **overview** (`meta.json` +
 `glitches.bin`) committed under `web/data/` and loaded eagerly, and a **detail**
 tier (`conf.bin`, `ids.txt`, `uuids.bin`) loaded lazily from `meta.detail.base_url`
-— a GitHub Release for the real dataset, so the repo stays small as the data grows.
+— served same-origin from Pages today; a CORS object store (R2) can host it
+off-repo at scale (see *Hosting note* below).
 
 **Regenerate the synthetic dataset** (pure NumPy, runs anywhere):
 
@@ -77,13 +77,12 @@ python pipeline/make_synthetic.py --n 150000 --out web/data
 
 **Build the real dataset** (~677k O1–O3 glitches) from the public Gravity Spy
 data on [Zenodo record 5649212](https://zenodo.org/records/5649212). UMAP on
-~677k×22 needs real RAM/CPU, so it runs on [Modal](https://modal.com):
+~677k×22 needs a few GB of RAM — the **free GitHub Actions runner** does it (see
+*Auto-update* below), or run it on any machine with enough RAM:
 
 ```bash
 pip install -r pipeline/requirements.txt
-modal run pipeline/modal_pipeline.py           # cloud: download + UMAP -> Modal volume
-python pipeline/fetch_volume.py                # pull outputs -> pipeline/_data_real/
-python pipeline/publish_data.py --local-only   # write all tiers into web/data/
+python pipeline/process_data.py --out web/data   # download + UMAP -> web/data/
 # then commit web/data/ and push — GitHub Pages deploys it.
 ```
 
@@ -112,16 +111,13 @@ Minimal bucket CORS policy:
 
 The app requests detail with `?v=<meta.version>`, so the bucket can cache aggressively.
 
-### Auto-update
+### Auto-update (free)
 
 `.github/workflows/update-data.yml` checks the upstream Zenodo record weekly (and
-on manual dispatch); if it changed, it rebuilds on Modal, republishes, and
-redeploys. It needs two repo secrets:
-
-```bash
-gh secret set MODAL_TOKEN_ID     --repo asystemoffields/gs-glitch-explorer
-gh secret set MODAL_TOKEN_SECRET --repo asystemoffields/gs-glitch-explorer
-```
+on manual dispatch); if it changed, it rebuilds the dataset **on the free GitHub
+Actions runner** — UMAP and all, no paid service and no secrets — republishes,
+and redeploys. To track a new observing run, set `REC` + `FILES` in
+`pipeline/process_data.py`.
 
 ## Deploy (GitHub Pages)
 

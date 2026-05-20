@@ -1,13 +1,10 @@
 name: Update data
 
 # Rebuilds the dataset and republishes when the upstream Zenodo record changes
-# (or on manual dispatch). The heavy UMAP runs on Modal; this runner only
-# orchestrates + commits the result, which triggers the Pages deploy.
+# (or on manual dispatch). Runs ENTIRELY on the free GitHub Actions runner — no
+# paid service, no secrets. The resulting commit triggers the Pages deploy.
 #
-# REQUIRES two repo secrets: MODAL_TOKEN_ID and MODAL_TOKEN_SECRET.
-#   gh secret set MODAL_TOKEN_ID --repo asystemoffields/gs-glitch-explorer
-#   gh secret set MODAL_TOKEN_SECRET --repo asystemoffields/gs-glitch-explorer
-# To track a NEW observing run, first update REC + FILES in pipeline/modal_pipeline.py.
+# To track a NEW observing run, update REC + FILES in pipeline/process_data.py.
 
 on:
   schedule:
@@ -42,9 +39,8 @@ jobs:
         run: |
           python - <<'PY'
           import json, os, re, pathlib, urllib.request
-          # read the record id straight from the pipeline so the two never drift
-          src = pathlib.Path('pipeline/modal_pipeline.py').read_text()
-          rec = re.search(r'REC\s*=\s*"(\d+)"', src).group(1)
+          src = pathlib.Path('pipeline/process_data.py').read_text()
+          rec = re.search(r'GS_ZENODO_RECORD",\s*"(\d+)"', src).group(1)
           updated = json.load(urllib.request.urlopen(f'https://zenodo.org/api/records/{rec}'))['updated']
           state = pathlib.Path('pipeline/.zenodo_state.json')
           prev = json.loads(state.read_text()).get(rec) if state.exists() else None
@@ -54,18 +50,14 @@ jobs:
               f.write(f'changed={str(changed).lower()}\nrec={rec}\nupdated={updated}\n')
           PY
 
-      - name: Build dataset on Modal + publish
+      - name: Build dataset (UMAP on the runner)
         if: steps.check.outputs.changed == 'true'
         env:
-          MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
-          MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
           REC: ${{ steps.check.outputs.rec }}
           UPDATED: ${{ steps.check.outputs.updated }}
         run: |
-          pip install --quiet modal requests
-          modal run pipeline/modal_pipeline.py
-          python pipeline/fetch_volume.py
-          python pipeline/publish_data.py --local-only
+          pip install --quiet -r pipeline/requirements.txt
+          python pipeline/process_data.py --out web/data
           python - <<'PY'
           import json, os, pathlib
           s = pathlib.Path('pipeline/.zenodo_state.json')

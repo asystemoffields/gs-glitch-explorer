@@ -2,7 +2,7 @@
 
 Compiled from primary sources (Zenodo REST API, the dataset README, the GravitySpy
 package source, GWpy's downloader, and the live Panoptes API). These facts drive
-the pipeline (`pipeline/modal_pipeline.py`) and the data contract in `../DATA_FORMAT.md`.
+the pipeline (`pipeline/process_data.py`) and the data contract in `../DATA_FORMAT.md`.
 
 > **Two corrections to the original mission spec are baked in here:** the
 > confidence vectors are **22-dimensional, not 23** (and the class set differs);
@@ -77,7 +77,7 @@ Optional for v1: only needed for volunteer-agreement metadata.
 - Storage: persist the 4 UUIDs/glitch (strip the constant prefix/suffix). Across
   ~710k glitches that's ~100 MB of URL data, so subsample and/or store UUIDs only.
 
-## Pipeline implementation (`modal_pipeline.py`)
+## Pipeline implementation (`process_data.py`)
 
 1. Download the 8 CSVs (cache to `pipeline/data_raw/`); concat with an `ifo`/`run`
    tag (run from the filename, not GPS — more reliable, though GPS works too).
