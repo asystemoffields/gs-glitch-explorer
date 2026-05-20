@@ -1,0 +1,91 @@
+name: Update data
+
+# Rebuilds the dataset and republishes when the upstream Zenodo record changes
+# (or on manual dispatch). The heavy UMAP runs on Modal; this runner only
+# orchestrates + commits the result, which triggers the Pages deploy.
+#
+# REQUIRES two repo secrets: MODAL_TOKEN_ID and MODAL_TOKEN_SECRET.
+#   gh secret set MODAL_TOKEN_ID --repo asystemoffields/gs-glitch-explorer
+#   gh secret set MODAL_TOKEN_SECRET --repo asystemoffields/gs-glitch-explorer
+# To track a NEW observing run, first update REC + FILES in pipeline/modal_pipeline.py.
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'          # Mondays 06:17 UTC
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Run even if the Zenodo record is unchanged
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check upstream Zenodo record for changes
+        id: check
+        env:
+          FORCE: ${{ github.event.inputs.force }}
+        run: |
+          python - <<'PY'
+          import json, os, re, pathlib, urllib.request
+          # read the record id straight from the pipeline so the two never drift
+          src = pathlib.Path('pipeline/modal_pipeline.py').read_text()
+          rec = re.search(r'REC\s*=\s*"(\d+)"', src).group(1)
+          updated = json.load(urllib.request.urlopen(f'https://zenodo.org/api/records/{rec}'))['updated']
+          state = pathlib.Path('pipeline/.zenodo_state.json')
+          prev = json.loads(state.read_text()).get(rec) if state.exists() else None
+          changed = (os.environ.get('FORCE') == 'true') or (prev != updated)
+          print(f'record {rec}: prev={prev} now={updated} -> changed={changed}')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'changed={str(changed).lower()}\nrec={rec}\nupdated={updated}\n')
+          PY
+
+      - name: Build dataset on Modal + publish
+        if: steps.check.outputs.changed == 'true'
+        env:
+          MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+          MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+          REC: ${{ steps.check.outputs.rec }}
+          UPDATED: ${{ steps.check.outputs.updated }}
+        run: |
+          pip install --quiet modal requests
+          modal run pipeline/modal_pipeline.py
+          python pipeline/fetch_volume.py
+          python pipeline/publish_data.py --local-only
+          python - <<'PY'
+          import json, os, pathlib
+          s = pathlib.Path('pipeline/.zenodo_state.json')
+          d = json.loads(s.read_text()) if s.exists() else {}
+          d[os.environ['REC']] = os.environ['UPDATED']
+          s.write_text(json.dumps(d, indent=2))
+          PY
+
+      - name: Commit, push & trigger deploy
+        if: steps.check.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name 'gs-data-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add web/data pipeline/.zenodo_state.json
+          if git diff --cached --quiet; then
+            echo 'No data changes to commit.'
+          else
+            git commit -m 'data: auto-update from Zenodo (record ${{ steps.check.outputs.rec }})'
+            git push
+            gh workflow run deploy-pages.yml   # GITHUB_TOKEN pushes don't auto-trigger workflows
+          fi

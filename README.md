@@ -94,6 +94,35 @@ python pipeline/publish_data.py --local-only   # write all tiers into web/data/
 > much larger dataset is a CORS-enabled object store (e.g. Cloudflare R2) set as
 > `meta.detail.base_url`.
 
+To move the detail tier off-repo at scale: create a public bucket (e.g. Cloudflare
+R2) with a CORS rule allowing `GET` from the site origin, then:
+
+```bash
+python pipeline/publish_data.py --base-url https://<bucket-host>/gs/
+# upload pipeline/_data_real/{conf.bin,ids.txt,uuids.bin} to that base URL, then:
+git add web/data && git commit -m "data: host detail tier on R2" && git push
+```
+
+Minimal bucket CORS policy:
+
+```json
+[{ "AllowedOrigins": ["https://asystemoffields.github.io"],
+   "AllowedMethods": ["GET"], "AllowedHeaders": ["range"] }]
+```
+
+The app requests detail with `?v=<meta.version>`, so the bucket can cache aggressively.
+
+### Auto-update
+
+`.github/workflows/update-data.yml` checks the upstream Zenodo record weekly (and
+on manual dispatch); if it changed, it rebuilds on Modal, republishes, and
+redeploys. It needs two repo secrets:
+
+```bash
+gh secret set MODAL_TOKEN_ID     --repo asystemoffields/gs-glitch-explorer
+gh secret set MODAL_TOKEN_SECRET --repo asystemoffields/gs-glitch-explorer
+```
+
 ## Deploy (GitHub Pages)
 
 Because it's pure static files, deployment is just publishing `web/`. The repo

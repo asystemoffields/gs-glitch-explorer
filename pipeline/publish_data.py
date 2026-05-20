@@ -44,6 +44,9 @@ def main():
     ap.add_argument("--repo", default=REPO)
     ap.add_argument("--local-only", action="store_true",
                     help="copy all tiers into web/data/ with base_url='' (no Release upload)")
+    ap.add_argument("--base-url", default=None,
+                    help="set meta.detail.base_url to this CORS-enabled URL (e.g. an R2 "
+                         "bucket); you upload the detail files there yourself")
     a = ap.parse_args()
 
     if not (a.src / "meta.json").exists():
@@ -66,6 +69,19 @@ def main():
         sizes = {f: (WEB_DATA / f).stat().st_size for f in OVERVIEW + DETAIL}
         print("LOCAL: all tiers in web/data/, base_url=''.")
         print({k: f"{v/1e6:.1f} MB" for k, v in sizes.items()})
+        return
+
+    if a.base_url:
+        # Off-repo detail tier: overview to the repo, base_url -> a CORS object
+        # store (you upload the detail files there). See README "Hosting".
+        shutil.copy2(a.src / "glitches.bin", WEB_DATA / "glitches.bin")
+        meta["detail"]["base_url"] = a.base_url.rstrip("/") + "/"
+        (WEB_DATA / "meta.json").write_text(json.dumps(meta, indent=2))
+        print(f"Overview -> web/data/; meta.detail.base_url = {meta['detail']['base_url']}")
+        print("Now upload these to that base URL (public-read + CORS allowing GET):")
+        for f in detail:
+            print("   ", a.src / f)
+        print("Then commit web/data/{meta.json,glitches.bin} and push.")
         return
 
     # overview -> repo
