@@ -5,12 +5,12 @@
 //   - emphasis[i]     : display category fed to the scatter (0 filtered .. 3 bright)
 //   - classCounts[j]  : visible count per class (drives the class list + stats)
 //   - ifoCounts[k]    : visible count per detector
-// It runs on every filter change (debounced for slider drags). At ~677k points
-// this is well under a frame, so filtering feels instant.
+// It runs on every filter change (debounced for slider drags). At the current
+// O1-O3 scale, filtering is quick enough to feel instant.
 
 // Emphasis categories -> mapped to actual alpha by scatter.js (categorical valueB).
 const EMPH_FILTERED = 0;   // failed a filter: faint context
-const EMPH_DIMMED = 1;     // visible but not "uncertain" while Discovery highlight is on
+const EMPH_DIMMED = 1;     // visible context while Discovery highlight is on
 const EMPH_VISIBLE = 2;    // normal visible
 const EMPH_BRIGHT = 3;     // visible AND high-entropy while Discovery highlight is on
 

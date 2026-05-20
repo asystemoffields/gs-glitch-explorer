@@ -1,7 +1,7 @@
 name: Deploy to GitHub Pages
 
-# No build step — the app is static. This just publishes web/ as the Pages
-# artifact on every push to main (or manually via the Actions tab).
+# Static app deploy. This publishes web/ as the Pages artifact on every push to
+# main, and can also run manually from the Actions tab.
 on:
   push:
     branches: [main]

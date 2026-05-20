@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 make_synthetic.py -- generate a realistic *synthetic* Gravity Spy dataset that
-conforms to the contract in DATA_FORMAT.md, so the web app is fully functional
-without the (large, UMAP-requiring) real pipeline.
+conforms to the contract in DATA_FORMAT.md for local demos, development, and
+tests using only NumPy.
 
 The synthetic data deliberately mimics the qualitative structure of the real
 Gravity Spy embedding so the tool feels familiar to people who know the data:
@@ -35,9 +35,8 @@ import numpy as np
 
 # --- The 22 confidence classes, in the EXACT column order of the real Zenodo
 # CSVs (record 5649212). index == label_idx == conf.bin column. The 2021 ML
-# dataset uses the original 22-class model (incl. "None_of_the_Above"); the
-# O3-era classes Fast_Scattering and Low_Frequency_Blip are NOT confidence
-# columns here. New classes (O4's Vibration, ...) slot in via meta.json. --------
+# dataset uses the original 22-class model, including "None_of_the_Above".
+# Future classes, such as O4's Vibration, slot in through meta.json. -----------
 CLASSES = [
     "1400Ripples", "1080Lines", "Air_Compressor", "Blip", "Chirp",
     "Extremely_Loud", "Helix", "Koi_Fish", "Light_Modulation", "Low_Frequency_Burst",

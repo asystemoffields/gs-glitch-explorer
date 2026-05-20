@@ -1,10 +1,9 @@
 name: Update data
 
 # Rebuilds the dataset and republishes when the upstream Zenodo record changes
-# (or on manual dispatch). Runs ENTIRELY on the free GitHub Actions runner — no
-# paid service, no secrets. The resulting commit triggers the Pages deploy.
+# or on manual dispatch. The resulting commit triggers the Pages deploy.
 #
-# To track a NEW observing run, update REC + FILES in pipeline/process_data.py.
+# To track a future observing run, update REC and FILES in pipeline/process_data.py.
 
 on:
   schedule:

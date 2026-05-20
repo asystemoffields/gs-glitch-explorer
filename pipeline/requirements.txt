@@ -1,5 +1,5 @@
 # Deps for the real pipeline (pipeline/process_data.py). Runs on the free GitHub
-# Actions runner, or any machine with a few GB of RAM — no paid service needed.
+# Actions runner, or any machine with a few GB of RAM.
 # EXACT, mutually-compatible pins: scikit-learn >=1.6 removed the
 # `force_all_finite` arg that umap-learn 0.5.6 still calls, so stay on 1.5.x
 # (with matched numpy / scipy / numba).

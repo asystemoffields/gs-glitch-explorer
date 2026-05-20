@@ -3,10 +3,10 @@
 process_data.py — build the REAL Gravity Spy dataset from Zenodo record 5649212,
 writing the two-tier files directly into an output dir (default web/data/).
 
-Runs anywhere with a few GB of RAM and NO paid service — the free GitHub Actions
-runner does this in .github/workflows/update-data.yml. (UMAP on ~677k x 22 uses a
-few GB; the public-repo runner has 16 GB.) For a much larger future dataset, run
-the same script on any bigger machine — the output format is identical.
+Runs on a local machine with a few GB of RAM. The GitHub Actions workflow in
+.github/workflows/update-data.yml can run the current O1-O3 UMAP build on the
+standard public runner. For larger future datasets, run the same script on a
+bigger machine; the output format is identical.
 
   pip install -r pipeline/requirements-lock.txt
   python pipeline/process_data.py --out web/data
@@ -254,7 +254,7 @@ def build(out_dir: Path, raw_dir: Path, record: str, n_neighbors: int,
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Build the real Gravity Spy dataset (no paid service).")
+    ap = argparse.ArgumentParser(description="Build the real Gravity Spy dataset.")
     ap.add_argument("--out", type=Path, default=Path(__file__).resolve().parent.parent / "web" / "data")
     ap.add_argument("--raw", type=Path, default=Path(tempfile.gettempdir()) / "gs_raw")
     ap.add_argument("--record", default=REC)

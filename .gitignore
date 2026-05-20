@@ -17,9 +17,8 @@ pipeline/*.hdf5
 pipeline/*.csv
 
 # web/data/: full data (overview + detail) is committed and served same-origin by
-# Pages — GitHub Release assets don't send CORS headers, so a cross-origin fetch
-# of the detail tier from a Release is blocked. (A CORS object store like R2 is
-# the path to move the detail tier off-repo when the dataset grows large.)
+# Pages. Use a CORS-enabled object store such as R2 when the detail tier needs
+# off-repo hosting.
 
 # --- OS / editor cruft ---
 .DS_Store
@@ -28,7 +27,7 @@ Thumbs.db
 .idea/
 *.swp
 
-# --- Node (not used by this project, but just in case) ---
+# --- Node cache ---
 node_modules/
 
 # --- Logs / temp ---
