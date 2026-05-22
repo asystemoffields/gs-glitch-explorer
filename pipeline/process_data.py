@@ -25,20 +25,22 @@ FILES = ["H1_O1.csv", "L1_O1.csv", "H1_O2.csv", "L1_O2.csv",
          "H1_O3a.csv", "L1_O3a.csv", "H1_O3b.csv", "L1_O3b.csv"]
 RUNS = ["O1", "O2", "O3a", "O3b"]
 IFOS = ["H1", "L1"]
-# The 22 ML confidence columns, in the EXACT Zenodo CSV header order.
+# ML confidence columns. The original 22 from the 2021 Zenodo release, plus
+# Blip_Low_Frequency and Fast_Scattering which were added to the ML between O2
+# and O3 (columns present in O3a/O3b CSVs only; filled with 0 for O1/O2).
 CONF_COLS = [
     "1400Ripples", "1080Lines", "Air_Compressor", "Blip", "Chirp",
     "Extremely_Loud", "Helix", "Koi_Fish", "Light_Modulation", "Low_Frequency_Burst",
     "Low_Frequency_Lines", "No_Glitch", "None_of_the_Above", "Paired_Doves", "Power_Line",
     "Repeating_Blips", "Scattered_Light", "Scratchy", "Tomte", "Violin_Mode",
-    "Wandering_Line", "Whistle",
+    "Wandering_Line", "Whistle", "Blip_Low_Frequency", "Fast_Scattering",
 ]
 PALETTE = [
     "#ffd60a", "#ff9f0a", "#8d6e63", "#ff5a5a", "#bf5af2",
     "#ff6fd8", "#2dd4a7", "#5b8def", "#a8e10c", "#ff7a45",
     "#c9a7ff", "#9aa0a6", "#6b7280", "#ff9ec7", "#e9e36b",
     "#ff7a7a", "#4cd964", "#c2c24e", "#5fb0e8", "#b06ed0",
-    "#32d5e0", "#ffbf8a",
+    "#32d5e0", "#ffbf8a", "#e76f51", "#7b68ee",
 ]
 URL_PREFIX = "https://panoptes-uploads.zooniverse.org/production/subject_location/"
 URL_SUFFIX = ".png"
@@ -129,9 +131,23 @@ def build(out_dir: Path, raw_dir: Path, record: str, n_neighbors: int,
         print(f"  {fn}: {len(d):,} rows", flush=True)
 
     df = pd.concat(frames, ignore_index=True)
-    missing = [c for c in CONF_COLS if c not in df.columns]
-    if missing:
-        raise RuntimeError(f"missing confidence columns {missing}; have {list(df.columns)}")
+
+    # Columns added between O2 and O3 won't exist in O1/O2 CSVs — fill with 0.
+    for c in CONF_COLS:
+        if c not in df.columns:
+            df[c] = 0.0
+
+    # Deduplicate by gravityspy_id, keeping the row with the highest ML confidence.
+    n_before = len(df)
+    df["__max_conf"] = df[CONF_COLS].max(axis=1)
+    df = (df.sort_values("__max_conf", ascending=False)
+            .drop_duplicates(subset="gravityspy_id", keep="first")
+            .drop(columns=["__max_conf"])
+            .reset_index(drop=True))
+    n_dupes = n_before - len(df)
+    if n_dupes:
+        print(f"deduplicated: dropped {n_dupes:,} duplicate rows "
+              f"({n_before:,} → {len(df):,})", flush=True)
 
     # Drop rows with non-finite key scalars or all-zero confidence (real Omicron
     # columns can carry NaN/inf -> would poison meta.json ranges / gps; an all-zero

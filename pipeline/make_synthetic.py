@@ -33,26 +33,26 @@ from pathlib import Path
 
 import numpy as np
 
-# --- The 22 confidence classes, in the EXACT column order of the real Zenodo
-# CSVs (record 5649212). index == label_idx == conf.bin column. The 2021 ML
-# dataset uses the original 22-class model, including "None_of_the_Above".
+# --- The 24 confidence classes. The original 22 from the 2021 Zenodo release
+# (record 5649212), plus Blip_Low_Frequency and Fast_Scattering which were
+# added to the ML between O2 and O3. index == label_idx == conf.bin column.
 # Future classes, such as O4's Vibration, slot in through meta.json. -----------
 CLASSES = [
     "1400Ripples", "1080Lines", "Air_Compressor", "Blip", "Chirp",
     "Extremely_Loud", "Helix", "Koi_Fish", "Light_Modulation", "Low_Frequency_Burst",
     "Low_Frequency_Lines", "No_Glitch", "None_of_the_Above", "Paired_Doves", "Power_Line",
     "Repeating_Blips", "Scattered_Light", "Scratchy", "Tomte", "Violin_Mode",
-    "Wandering_Line", "Whistle",
+    "Wandering_Line", "Whistle", "Blip_Low_Frequency", "Fast_Scattering",
 ]
 
-# 22 colours, parallel to CLASSES (chosen to read well on a near-black bg; the
+# 24 colours, parallel to CLASSES (chosen to read well on a near-black bg; the
 # two catch-all classes No_Glitch / None_of_the_Above get neutral greys).
 PALETTE = [
     "#ffd60a", "#ff9f0a", "#8d6e63", "#ff5a5a", "#bf5af2",
     "#ff6fd8", "#2dd4a7", "#5b8def", "#a8e10c", "#ff7a45",
     "#c9a7ff", "#9aa0a6", "#6b7280", "#ff9ec7", "#e9e36b",
     "#ff7a7a", "#4cd964", "#c2c24e", "#5fb0e8", "#b06ed0",
-    "#32d5e0", "#ffbf8a",
+    "#32d5e0", "#ffbf8a", "#e76f51", "#7b68ee",
 ]
 
 # Per-class: population weight, 2D cluster spread, characteristic frequency band
@@ -81,6 +81,8 @@ CLASS_CFG = {
     "Violin_Mode":         dict(w=3,  sigma=0.40, freq=(450, 520),   snr=1.0),
     "Wandering_Line":      dict(w=3,  sigma=0.55, freq=(50, 1000),   snr=1.0),
     "Whistle":             dict(w=6,  sigma=0.60, freq=(100, 2048),  snr=1.2),
+    "Blip_Low_Frequency":  dict(w=5,  sigma=0.55, freq=(10, 100),    snr=1.4),
+    "Fast_Scattering":     dict(w=15, sigma=0.80, freq=(10, 80),     snr=1.0),
 }
 
 # Morphologically confusable pairs -> placed adjacently and used to bridge
@@ -90,6 +92,7 @@ NEIGHBORS = [
     ("Low_Frequency_Burst", "Tomte"), ("Scattered_Light", "Tomte"),
     ("1080Lines", "1400Ripples"), ("Power_Line", "Low_Frequency_Lines"),
     ("Whistle", "Light_Modulation"), ("None_of_the_Above", "No_Glitch"),
+    ("Blip_Low_Frequency", "Blip"), ("Fast_Scattering", "Scattered_Light"),
 ]
 
 RUNS = ["O1", "O2", "O3a", "O3b"]
