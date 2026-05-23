@@ -1,7 +1,8 @@
 {
   "schema_version": 2,
+  "version": "6d4865179cfd",
   "source": "gravityspy-zenodo-5649212",
-  "total_glitches": 676613,
+  "total_glitches": 676560,
   "id_length": 10,
   "classes": [
     "1400Ripples",
@@ -25,7 +26,9 @@
     "Tomte",
     "Violin_Mode",
     "Wandering_Line",
-    "Whistle"
+    "Whistle",
+    "Blip_Low_Frequency",
+    "Fast_Scattering"
   ],
   "class_colors": [
     "#ffd60a",
@@ -49,7 +52,9 @@
     "#5fb0e8",
     "#b06ed0",
     "#32d5e0",
-    "#ffbf8a"
+    "#ffbf8a",
+    "#e76f51",
+    "#7b68ee"
   ],
   "runs": [
     "O1",
@@ -62,10 +67,10 @@
     "L1"
   ],
   "bounds": {
-    "xmin": -15.0,
-    "xmax": 34.0,
-    "ymin": -19.0,
-    "ymax": 26.0
+    "xmin": -11.0,
+    "xmax": 26.0,
+    "ymin": -15.0,
+    "ymax": 24.0
   },
   "snr": {
     "min": 7.5,
@@ -79,7 +84,7 @@
     "min": 1126402868,
     "max": 1269029954
   },
-  "gps_base": 1126400000,
+  "gps_base": 1126402868,
   "detail": {
     "base_url": "",
     "conf_file": "conf.bin",
@@ -97,6 +102,5 @@
       "2.0",
       "4.0"
     ]
-  },
-  "version": "088035d3f1c6"
+  }
 }
