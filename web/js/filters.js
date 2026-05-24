@@ -58,6 +58,20 @@ export function buildFilters(root, data, state) {
   });
   root.appendChild(section('Observing run', [runWrap]));
 
+  // ---------- Duplicates ----------
+  const dupCount = meta.duplicate_count || 0;
+  let dupCb = null;
+  if (dupCount > 0) {
+    dupCb = el('input', { type: 'checkbox' });
+    dupCb.checked = false;
+    dupCb.addEventListener('change', () =>
+      state.update((f) => { f.showDups = dupCb.checked; }));
+    const dupLabel = el('label', { class: 'row', style: { margin: 0 } },
+      [dupCb, ` Show duplicates (${dupCount.toLocaleString()})`]);
+    root.appendChild(section('Duplicates', [dupLabel,
+      hint('The source data contains duplicate gravityspy_id entries. By default only the highest-confidence instance is shown.')]));
+  }
+
   // ---------- SNR ----------
   const snr = makeDualSlider({
     min: meta.snr.min, max: meta.snr.max, value: [meta.snr.min, meta.snr.max], log: true,
@@ -100,6 +114,7 @@ export function buildFilters(root, data, state) {
     classRows.forEach(({ cb, row }, j) => { cb.checked = !!f.classOn[j]; row.classList.toggle('off', !cb.checked); });
     ifoSeg.set(f.ifo === 'both' ? 0 : (f.ifo === 'H1' ? 1 : 2));
     runCbs.forEach((cb, ri) => { cb.checked = !!f.runOn[ri]; });
+    if (dupCb) dupCb.checked = !!f.showDups;
     snr.set(f.snr); freq.set(f.freq); conf.set(f.conf); ent.set(f.entropy);
   }
   state.on((evt) => {

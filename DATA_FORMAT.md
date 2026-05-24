@@ -24,7 +24,7 @@ on mainstream platforms.
 | detail | `uuids.bin` | `base_url` | lazy/ranged | packed spectrogram UUIDs when `images.available` is true |
 
 The committed real build contains 676,613 glitches. Its file sizes are
-deterministic from the schema: `glitches.bin` is `31N`, `conf.bin` is `22N`,
+deterministic from the schema: `glitches.bin` is `32N`, `conf.bin` is `22N`,
 `ids.txt` is `10N`, and `uuids.bin` is `64N`.
 
 ## `meta.json`
@@ -90,10 +90,11 @@ A single buffer of column-major arrays, each length `N`, concatenated in order.
 | 8 | `label_idx` | Uint8 | index into `classes` |
 | 9 | `run_idx` | Uint8 | index into `runs` |
 | 10 | `ifo_idx` | Uint8 | index into `ifos` |
+| 11 | `is_dup` | Uint8 | 1 if this row is a duplicate `gravityspy_id` (0 = primary) |
 
-The layout is **31 bytes/glitch**. The six Float32 columns occupy `[0, 24N)`,
-the Uint32 column occupies `[24N, 28N)`, and the three Uint8 columns occupy
-`[28N, 31N)`. All 4-byte columns are 4-byte aligned.
+The layout is **32 bytes/glitch**. The six Float32 columns occupy `[0, 24N)`,
+the Uint32 column occupies `[24N, 28N)`, and the four Uint8 columns occupy
+`[28N, 32N)`. All 4-byte columns are 4-byte aligned.
 
 ```js
 const buf = await (await fetch('data/glitches.bin')).arrayBuffer();
@@ -112,6 +113,7 @@ const col = {
   labelIdx: u8(N),
   runIdx: u8(N),
   ifoIdx: u8(N),
+  isDup: u8(N),
 };
 ```
 

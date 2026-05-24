@@ -32,6 +32,7 @@ export function createState(data) {
     conf: [0, 1],
     entropy: [0, maxEntropy],
     time: null,                           // null = all; else [gpsMin, gpsMax]
+    showDups: false,
   });
 
   const f = defaults();
@@ -49,7 +50,7 @@ export function createState(data) {
   const ifoIndex = { H1: meta.ifos.indexOf('H1'), L1: meta.ifos.indexOf('L1') };
 
   function recompute() {
-    const { snr, peakFreq, confidence, entropy, labelIdx, runIdx, ifoIdx, gpsOff } = col;
+    const { snr, peakFreq, confidence, entropy, labelIdx, runIdx, ifoIdx, gpsOff, isDup } = col;
     const snrLo = f.snr[0], snrHi = f.snr[1];
     const fLo = f.freq[0], fHi = f.freq[1];
     const cLo = f.conf[0], cHi = f.conf[1];
@@ -59,13 +60,15 @@ export function createState(data) {
     const tLo = hasTime ? f.time[0] - meta.gps_base : 0;
     const tHi = hasTime ? f.time[1] - meta.gps_base : 0;
     const showUnc = d.showUncertain, uth = d.uncertainThreshold;
+    const hideDups = !f.showDups;
 
     classCounts.fill(0);
     ifoCounts.fill(0);
     let vis = 0;
     for (let i = 0; i < N; i++) {
       const li = labelIdx[i];
-      let ok = f.classOn[li] === 1 &&
+      let ok = (hideDups ? isDup[i] === 0 : true) &&
+        f.classOn[li] === 1 &&
         f.runOn[runIdx[i]] === 1 &&
         (ifoF < 0 || ifoIdx[i] === ifoF) &&
         snr[i] >= snrLo && snr[i] <= snrHi &&

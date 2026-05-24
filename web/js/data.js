@@ -47,6 +47,7 @@ export async function loadData() {
     x: f32(N), y: f32(N), snr: f32(N), peakFreq: f32(N),
     entropy: f32(N), confidence: f32(N), gpsOff: u32(N),
     labelIdx: u8(N), runIdx: u8(N), ifoIdx: u8(N),
+    isDup: buf.byteLength >= o + N ? u8(N) : new Uint8Array(N),
   };
   if (o !== buf.byteLength) throw new Error(`glitches.bin size mismatch: decoded ${o} of ${buf.byteLength} bytes (expected N=${N})`);
 
