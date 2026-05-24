@@ -1,8 +1,9 @@
 {
   "schema_version": 2,
-  "version": "6d4865179cfd",
+  "version": "d42e7b102fe8",
   "source": "gravityspy-zenodo-5649212",
-  "total_glitches": 676560,
+  "total_glitches": 676561,
+  "duplicate_count": 1,
   "id_length": 10,
   "classes": [
     "1400Ripples",
@@ -26,9 +27,7 @@
     "Tomte",
     "Violin_Mode",
     "Wandering_Line",
-    "Whistle",
-    "Blip_Low_Frequency",
-    "Fast_Scattering"
+    "Whistle"
   ],
   "class_colors": [
     "#ffd60a",
@@ -52,9 +51,7 @@
     "#5fb0e8",
     "#b06ed0",
     "#32d5e0",
-    "#ffbf8a",
-    "#e76f51",
-    "#7b68ee"
+    "#ffbf8a"
   ],
   "runs": [
     "O1",
@@ -67,10 +64,10 @@
     "L1"
   ],
   "bounds": {
-    "xmin": -11.0,
-    "xmax": 26.0,
-    "ymin": -15.0,
-    "ymax": 24.0
+    "xmin": -10.0,
+    "xmax": 25.0,
+    "ymin": -16.0,
+    "ymax": 23.0
   },
   "snr": {
     "min": 7.5,
